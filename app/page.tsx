@@ -2,8 +2,9 @@
 
 import { getSuggestions } from "@/actions/openai";
 import { ForceGraph2D } from "react-force-graph";
-import { Button, Container, Heading, HStack, Input, useBoolean } from "@yamada-ui/react";
+import { Button, Center, Container, Heading, HStack, Input, Loading, useBoolean } from "@yamada-ui/react";
 import { useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
 
 // 手動で ForceGraphMethods 型を定義
 interface ForceGraphMethods {
@@ -25,6 +26,13 @@ interface Link {
 }
 
 export default function Home() {
+  const DynamicForceGraph2D = dynamic(() => import('react-force-graph').then(mod => mod.ForceGraph2D), {
+    ssr: false,
+    loading: () => <Center w="full" h="full">
+      <Loading />
+    </Center>
+  }) as typeof ForceGraph2D;
+
   const graphRef = useRef<ForceGraphMethods | null>(null); // 型を追加
   const [query, setQuery] = useState("");
   const [data, setData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
@@ -61,7 +69,7 @@ export default function Home() {
           検索
         </Button>
       </HStack>
-      <ForceGraph2D
+      <DynamicForceGraph2D
         ref={graphRef as any}
         graphData={data}
         nodeLabel={(node: Node) => node.label || ""}
