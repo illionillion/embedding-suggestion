@@ -8,7 +8,10 @@ import dynamic from "next/dynamic";
 
 // 手動で ForceGraphMethods 型を定義
 interface ForceGraphMethods {
-  d3Force: (force: string) => { strength: (value: number) => void } | undefined;
+  d3Force: (force: string) => { 
+    strength: (value: number) => void;
+    distance?: (value: (link: Link) => number) => void;
+  } | undefined;
 }
 
 interface Node {
@@ -51,6 +54,10 @@ export default function Home() {
   useEffect(() => {
     if (graphRef.current) {
       graphRef.current?.d3Force("charge")?.strength(-1000); // ノード間の距離を広げる
+      graphRef.current?.d3Force("link")?.distance?.((link) => {
+        // 類似度が高いほど距離を短く、低いほど距離を長く
+        return (1 - link.value) * 300;  // 類似度に応じて距離を調整（距離が広がるほど類似度が低い）
+      });
     }
   }, [data]);
 
@@ -117,6 +124,10 @@ export default function Home() {
               ...bckgDimensions
             );
           }
+        }}
+        onNodeClick={(node: Node) => {
+          // ノードをクリックした際の遷移処理
+          console.log(node.label);
         }}
       />
     </Container>
