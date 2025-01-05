@@ -2,13 +2,13 @@
 
 import { getSuggestions } from "@/actions/openai";
 import { ForceGraph2D } from "react-force-graph";
-import { Button, Center, Container, Heading, HStack, Input, Loading, useBoolean } from "@yamada-ui/react";
+import { Button, Center, Container, Drawer, DrawerBody, DrawerFooter, DrawerHeader, Heading, HStack, Input, Loading, useBoolean, useDisclosure } from "@yamada-ui/react";
 import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 
 // 手動で ForceGraphMethods 型を定義
 interface ForceGraphMethods {
-  d3Force: (force: string) => { 
+  d3Force: (force: string) => {
     strength: (value: number) => void;
     distance?: (value: (link: Link) => number) => void;
   } | undefined;
@@ -40,6 +40,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [data, setData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
   const [isLoading, { on: start, off: end }] = useBoolean();
+  const { open, onOpen, onClose } = useDisclosure()
 
   const handleSearch = async () => {
     if (!query) return;
@@ -125,11 +126,29 @@ export default function Home() {
             );
           }
         }}
-        onNodeClick={(node: Node) => {
+        onNodeClick={(node, e) => {
+          if (node.id === "query") {
+            return
+          }
           // ノードをクリックした際の遷移処理
-          console.log(node.label);
+          console.log(node, e);
+          onOpen();
         }}
       />
+      {/* ドロワーの中身部分にpointerEvents: "auto"を指定したい */}
+      <Drawer open={open} onClose={onClose} withOverlay={false} containerProps={{ pointerEvents: "none" }} > 
+        <DrawerHeader></DrawerHeader>
+
+        <DrawerBody>
+        </DrawerBody>
+
+        <DrawerFooter>
+          <Button variant="ghost" onClick={onClose}>
+            とじる
+          </Button>
+          <Button colorScheme="primary">移動する</Button>
+        </DrawerFooter>
+      </Drawer>
     </Container>
   );
 }
