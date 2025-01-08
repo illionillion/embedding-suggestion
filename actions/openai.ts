@@ -56,7 +56,7 @@ export async function getSuggestions(query: string) {
           // 閾値を動的に変更
           const threshold =
             depth === 0 ? 0.8
-              : depth === 0
+              : depth === 1
               ? 0.7
               : 0.65;
 
@@ -100,14 +100,35 @@ export async function getSuggestions(query: string) {
       // 親のラベルリストを次の再帰呼び出しで使うために更新
       const updatedParentLabels = [...parentLabels, ...validChildren.map((child) => child!.label)];
 
-      for (const child of validChildren) {
-        const subNetwork = await buildNetwork(
-          child!.id,
-          child!.embedding,
-          updatedParentLabels, // 更新された親のラベルリストを渡す
-          depth + 1,
-          visitedNodes
-        );
+      async function processInBatches(children: ({
+        id: string;
+        label: string;
+        embedding: number[];
+        similarity: number;
+        depth: number;
+      } | null)[], batchSize: number) {
+        let results: Awaited<ReturnType<typeof buildNetwork>>[] = [];
+        for (let i = 0; i < children.length; i += batchSize) {
+          const batch = children.slice(i, i + batchSize);
+          const batchResults = await Promise.all(
+            batch.map(async (child) => {
+              return await buildNetwork(
+                child!.id,
+                child!.embedding,
+                updatedParentLabels,
+                depth + 1,
+                visitedNodes
+              );
+            })
+          );
+          results = [...results, ...batchResults];
+        }
+        return results;
+      }
+
+      const subNetworks = await processInBatches(validChildren, 5);
+
+      for (const subNetwork of subNetworks) {
         nodes.push(...subNetwork.nodes);
         links.push(...subNetwork.links);
       }
