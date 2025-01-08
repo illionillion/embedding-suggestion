@@ -39,6 +39,7 @@ export default function Home() {
   const graphRef = useRef<ForceGraphMethods | null>(null); // 型を追加
   const [query, setQuery] = useState("");
   const [data, setData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isLoading, { on: start, off: end }] = useBoolean();
   const { open, onOpen, onClose } = useDisclosure()
 
@@ -85,6 +86,7 @@ export default function Home() {
         linkWidth={(link: Link) => link.value * 10}
         linkDirectionalArrowLength={6}
         linkDirectionalArrowRelPos={1}
+        linkDirectionalArrowColor={(link: Link) => link.value > 0.7 ? 'red' : 'blue'}
         nodeCanvasObject={(node: Node, ctx, globalScale) => {
           const label = node.label || "";
           const fontSize = 12 / globalScale; // スケールに応じてフォントサイズ調整
@@ -131,24 +133,32 @@ export default function Home() {
             return
           }
           // ノードをクリックした際の遷移処理
+          setSelectedNode(node);
           console.log(node, e);
           onOpen();
         }}
       />
       {/* ドロワーの中身部分にpointerEvents: "auto"を指定したい */}
-      <Drawer open={open} onClose={onClose} withOverlay={false} containerProps={{ pointerEvents: "none" }} > 
-        <DrawerHeader></DrawerHeader>
-
-        <DrawerBody>
-        </DrawerBody>
-
-        <DrawerFooter>
-          <Button variant="ghost" onClick={onClose}>
-            とじる
-          </Button>
-          <Button colorScheme="primary">移動する</Button>
-        </DrawerFooter>
-      </Drawer>
+      <Drawer open={open} onClose={onClose}>
+      <DrawerHeader>{selectedNode?.label || "ノード詳細"}</DrawerHeader>
+      <DrawerBody>
+        {selectedNode ? (
+          <>
+            <p>ID: {selectedNode.id}</p>
+            <p>ラベル: {selectedNode.label}</p>
+            {/* ここに他の詳細情報を追加 */}
+          </>
+        ) : (
+          <p>ノードが選択されていません</p>
+        )}
+      </DrawerBody>
+      <DrawerFooter>
+        <Button variant="ghost" onClick={onClose}>
+          とじる
+        </Button>
+        <Button colorScheme="primary">移動する</Button>
+      </DrawerFooter>
+    </Drawer>
     </Container>
   );
 }
