@@ -40,8 +40,7 @@ export default function Home() {
 
   const graphRef = useRef<ForceGraphMethods | null>(null); // 型を追加
   const [query, setQuery] = useState("");
-  const [data, setData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
   const [selectItem, setSelectItem] = useState<typeof suggestions[number] | null>(null);
   const [isLoading, { on: start, off: end }] = useBoolean();
   const { open, onOpen, onClose } = useDisclosure()
