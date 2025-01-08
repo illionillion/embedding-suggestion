@@ -94,6 +94,7 @@ export async function getSuggestions(query: string) {
       }));
       const nodes = validChildren.map((child) => ({
         id: child!.id,
+        name: child!.label,
         label: `${child!.label} (Rank: ${depth + 1})`,
       }));
 
@@ -138,7 +139,7 @@ export async function getSuggestions(query: string) {
 
     // 最初の親ノードはダミー値で呼び出す
     const network = await buildNetwork("query", queryEmbedding, [query]);
-    network.nodes.unshift({ id: "query", label: query }); // 中心ノード追加
+    network.nodes.unshift({ id: "query", label: query, name: "query" }); // 中心ノード追加
     // console.log(network);
 
     return network;

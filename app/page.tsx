@@ -2,9 +2,10 @@
 
 import { getSuggestions } from "@/actions/openai";
 import { ForceGraph2D } from "react-force-graph";
-import { Button, Center, Container, Drawer, DrawerBody, DrawerFooter, DrawerHeader, Heading, HStack, Input, Loading, useBoolean, useDisclosure } from "@yamada-ui/react";
+import { Button, Center, Container, Drawer, DrawerBody, DrawerFooter, DrawerHeader, Heading, HStack, Input, Loading, Tag, Text, useBoolean, useDisclosure, Wrap } from "@yamada-ui/react";
 import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
+import { suggestions } from "@/utils/data";
 
 // 手動で ForceGraphMethods 型を定義
 interface ForceGraphMethods {
@@ -17,6 +18,7 @@ interface ForceGraphMethods {
 interface Node {
   id: string;
   label?: string;
+  name?: string;
   x?: number;
   y?: number;
   __bckgDimensions?: [number, number];
@@ -40,6 +42,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [data, setData] = useState<{ nodes: Node[]; links: Link[] }>({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectItem, setSelectItem] = useState<typeof suggestions[number] | null>(null);
   const [isLoading, { on: start, off: end }] = useBoolean();
   const { open, onOpen, onClose } = useDisclosure()
 
@@ -133,23 +136,23 @@ export default function Home() {
             return
           }
           // ノードをクリックした際の遷移処理
-          setSelectedNode(node);
+          setSelectItem(suggestions.find((item) => item.name === node.name) || null);
           console.log(node, e);
           onOpen();
         }}
       />
       {/* ドロワーの中身部分にpointerEvents: "auto"を指定したい */}
       <Drawer open={open} onClose={onClose}>
-      <DrawerHeader>{selectedNode?.label || "ノード詳細"}</DrawerHeader>
+      <DrawerHeader>{selectItem?.name || "ノード詳細"}</DrawerHeader>
       <DrawerBody>
-        {selectedNode ? (
+        {selectItem ? (
           <>
-            <p>ID: {selectedNode.id}</p>
-            <p>ラベル: {selectedNode.label}</p>
-            {/* ここに他の詳細情報を追加 */}
+            <Text fontSize="lg">サークル名: {selectItem.name}</Text>
+            <Wrap gap="md"><Text>ラベル:</Text>{selectItem.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</Wrap>
+            <Text textWrap="wrap">概要: {selectItem.description}</Text>
           </>
         ) : (
-          <p>ノードが選択されていません</p>
+          <Text>ノードが選択されていません</Text>
         )}
       </DrawerBody>
       <DrawerFooter>
