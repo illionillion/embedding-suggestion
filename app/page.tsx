@@ -52,8 +52,8 @@ export default function Home() {
     start();
     console.log("query", query);
     const result = cache.has(query) ? cache.get(query) : await getSuggestions(query);
+    console.log(result);
     if (result) {
-      console.log(result);
       cache.set(query, result);
       setData(result);
     }
