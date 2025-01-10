@@ -1,5 +1,5 @@
 "use server";
-import { suggestions } from "@/utils/data";
+import suggestions from "@/utils/suggestions-with-embeddings.json";
 import OpenAI from "openai";
 
 // OpenAI APIの初期化
@@ -38,14 +38,7 @@ export async function getSuggestions(query: string) {
 
       const children = await Promise.all(
         suggestions.map(async (item) => {
-          const inputText = `${item.name} ${item.tags.join(" ")} ${
-            item.description
-          }`;
-          const response = await openai.embeddings.create({
-            model: "text-embedding-ada-002",
-            input: inputText,
-          });
-          const childEmbedding = response.data[0].embedding;
+          const childEmbedding = item.embedding;
           const similarity = cosineSimilarity(parentEmbedding, childEmbedding);
 
           // 親のラベルリストに同じ名前のサークルが含まれている場合は除外
@@ -101,33 +94,17 @@ export async function getSuggestions(query: string) {
       // 親のラベルリストを次の再帰呼び出しで使うために更新
       const updatedParentLabels = [...parentLabels, ...validChildren.map((child) => child!.label)];
 
-      async function processInBatches(children: ({
-        id: string;
-        label: string;
-        embedding: number[];
-        similarity: number;
-        depth: number;
-      } | null)[], batchSize: number) {
-        let results: Awaited<ReturnType<typeof buildNetwork>>[] = [];
-        for (let i = 0; i < children.length; i += batchSize) {
-          const batch = children.slice(i, i + batchSize);
-          const batchResults = await Promise.all(
-            batch.map(async (child) => {
-              return await buildNetwork(
-                child!.id,
-                child!.embedding,
-                updatedParentLabels,
-                depth + 1,
-                visitedNodes
-              );
-            })
+      const subNetworks = await Promise.all(
+        validChildren.map(async (child) => {
+          return await buildNetwork(
+            child!.id,
+            child!.embedding,
+            updatedParentLabels,
+            depth + 1,
+            visitedNodes
           );
-          results = [...results, ...batchResults];
-        }
-        return results;
-      }
-
-      const subNetworks = await processInBatches(validChildren, 5);
+        })
+      );
 
       for (const subNetwork of subNetworks) {
         nodes.push(...subNetwork.nodes);

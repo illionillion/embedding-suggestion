@@ -1,6 +1,6 @@
 "use client";
 
-import { getSuggestions } from "@/actions/openai";
+import { getSuggestions } from "@/actions/suggestion";
 import { ForceGraph2D } from "react-force-graph";
 import { Button, Center, Container, Drawer, DrawerBody, DrawerFooter, DrawerHeader, Heading, HStack, Input, Loading, Tag, Text, useBoolean, useDisclosure, Wrap } from "@yamada-ui/react";
 import { useEffect, useState, useRef } from "react";

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "embedding": "tsx --env-file=.env ./scripts/embedding.ts"
   },
   "dependencies": {
     "@yamada-ui/react": "^1.7.2",
