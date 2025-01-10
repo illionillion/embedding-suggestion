@@ -40,18 +40,23 @@ export default function Home() {
 
   const graphRef = useRef<ForceGraphMethods | null>(null); // 型を追加
   const [query, setQuery] = useState("");
+  const cacheRef = useRef(new Map<string, Awaited<ReturnType<typeof getSuggestions>>>());
   const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
   const [selectItem, setSelectItem] = useState<typeof suggestions[number] | null>(null);
   const [isLoading, { on: start, off: end }] = useBoolean();
   const { open, onOpen, onClose } = useDisclosure()
 
   const handleSearch = async () => {
+    const cache = cacheRef.current;
     if (!query) return;
     start();
     console.log("query", query);
-    const result = await getSuggestions(query);
-    console.log(result);
-    setData(result);
+    const result = cache.has(query) ? cache.get(query) : await getSuggestions(query);
+    if (result) {
+      console.log(result);
+      cache.set(query, result);
+      setData(result);
+    }
     end();
   };
 
