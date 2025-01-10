@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { suggestions as originalSuggestions } from "@/utils/data";
+import suggestions from "@/utils/suggestions-with-embeddings.json";
 import { writeFileSync } from "fs";
 import path from "path";
 
@@ -22,11 +23,18 @@ async function calculateEmbeddings(batchSize: number = 5) {
     return { ...suggestion, embedding };
   }
 
-  let updatedSuggestions: Awaited<ReturnType<typeof generateEmbedding>>[] = [];
-  for (let i = 0; i < originalSuggestions.length; i += batchSize) {
+  const filteredSuggestions = originalSuggestions.filter(suggestion => suggestions.every(s => s.name !== suggestion.name));
+  console.log(filteredSuggestions);
+
+  if (filteredSuggestions.length === 0) {
+    return suggestions;
+  }
+  
+  let updatedSuggestions: Awaited<ReturnType<typeof generateEmbedding>>[] = suggestions;
+  for (let i = 0; i < filteredSuggestions.length; i += batchSize) {
     console.log(i);
     
-    const batch = originalSuggestions.slice(i, i + batchSize);
+    const batch = filteredSuggestions.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map(generateEmbedding)
     );
