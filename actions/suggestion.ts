@@ -15,127 +15,66 @@ function cosineSimilarity(vec1: number[], vec2: number[]): number {
   return dotProduct / (magnitude1 * magnitude2);
 }
 
-// 再帰的にネットワークを構築する関数
-const buildNetwork = async (
-  parentId: string,
-  parentEmbedding: number[],
-  parentLabels: string[], // 親のラベルリストを渡す
-  depth: number = 0,
-  visitedNodes: Set<string> = new Set()
-) => {
-  console.log("depth:", depth);
-
-  if (depth > 2) return { nodes: [], links: [] }; // 深さ制限
-
-  const children = await Promise.all(
-    suggestions.map(async (item) => {
-      const childEmbedding = item.embedding;
-      const similarity = cosineSimilarity(parentEmbedding, childEmbedding);
-
-      // 親のラベルリストに同じ名前のサークルが含まれている場合は除外
-      if (parentLabels.includes(item.name)) {
-        return null;
-      }
-
-      // 閾値を動的に変更
-      const threshold = depth === 0 ? 0.7 : depth === 1 ? 0.65 : 0.6;
-
-      if (similarity > threshold) {
-        const nodeId = `${item.name}-${depth}`;
-
-        if (visitedNodes.has(nodeId)) {
-          return null;
-        }
-
-        visitedNodes.add(nodeId);
-
-        return {
-          id: nodeId,
-          label: item.name,
-          embedding: childEmbedding,
-          similarity,
-          depth,
-        };
-      }
-      return null;
-    })
-  );
-
-  const maxLinksPerNode = 3;
-  const validChildren = children
-    .filter((child) => child !== null)
-    .sort((a, b) => b!.similarity - a!.similarity)
-    .slice(0, maxLinksPerNode);
-
-  const links = validChildren.map((child) => ({
-    source: parentId,
-    target: child!.id,
-    value: child!.similarity,
-  }));
-  const nodes = validChildren.map((child) => ({
-    id: child!.id,
-    name: child!.label,
-    label: `${child!.label} (Rank: ${depth + 1})`,
-  }));
-
-  // 親のラベルリストを次の再帰呼び出しで使うために更新
-  const updatedParentLabels = [
-    ...parentLabels,
-    ...validChildren.map((child) => child!.label),
+function generateTree(
+  query: string,
+  queryEmbedding: number[],
+  suggestionsData: typeof suggestions
+) {
+  const nodes: { id: string; label: string; name: string }[] = [
+    { id: "query", label: query, name: query },
   ];
+  const links: { source: string; target: string; value: number }[] = [];
 
-  const subNetworks = await Promise.all(
-    validChildren.map(async (child) => {
-      return await buildNetwork(
-        child!.id,
-        child!.embedding,
-        updatedParentLabels,
-        depth + 1,
-        visitedNodes
-      );
-    })
-  );
+  // クエリと各サジェストの類似度を計算
+  const similarities = suggestionsData.map((suggestion) => ({
+    ...suggestion,
+    similarity: cosineSimilarity(queryEmbedding, suggestion.embedding),
+  }));
 
-  for (const subNetwork of subNetworks) {
-    nodes.push(...subNetwork.nodes);
-    links.push(...subNetwork.links);
-  }
+  // 類似度でソート
+  similarities.sort((a, b) => b.similarity - a.similarity);
 
-  return { nodes, links };
-};
-
-function removeDuplicateNodes(network: Awaited<ReturnType<typeof buildNetwork>>) {
-  const nodeMap = new Map<string, any>();
-  const newLinks: Awaited<ReturnType<typeof buildNetwork>>["links"] = [];
-
-  network.nodes.forEach((node) => {
-    if (nodeMap.has(node.id)) {
-      const existingNode = nodeMap.get(node.id);
-
-      network.links.forEach((link) => {
-        if (link.source === node.id || link.target === node.id) {
-          const newLink = {
-            source: link.source === node.id ? existingNode.id : link.source,
-            target: link.target === node.id ? existingNode.id : link.target,
-            value: link.value,
-          };
-
-          if (!newLinks.some(l => l.source === newLink.source && l.target === newLink.target)) {
-            newLinks.push(newLink);
-          }
-        }
-      });
-    } else {
-      nodeMap.set(node.id, node);
-    }
+  // 上位3つをルートノードとして追加
+  const topSuggestions = similarities.slice(0, 3);
+  topSuggestions.forEach((suggestion) => {
+    nodes.push({
+      id: suggestion.name,
+      label: suggestion.name,
+      name: suggestion.name,
+    });
+    links.push({
+      source: "query",
+      target: suggestion.name,
+      value: Number(suggestion.similarity.toFixed(2)),
+    });
   });
 
-  const uniqueNodes = Array.from(nodeMap.values());
+  // 残りのサジェストを子ノードとして追加
+  similarities.slice(3).forEach((suggestion) => {
+    nodes.push({
+      id: suggestion.name,
+      label: suggestion.name,
+      name: suggestion.name,
+    });
 
-  return {
-    nodes: uniqueNodes,
-    links: newLinks,
-  };
+    // 最も類似度の高いルートノードに接続
+    const closestRoot = topSuggestions.reduce((prev, current) =>
+      cosineSimilarity(suggestion.embedding, current.embedding) >
+      cosineSimilarity(suggestion.embedding, prev.embedding)
+        ? current
+        : prev
+    );
+
+    links.push({
+      source: closestRoot.name,
+      target: suggestion.name,
+      value: Number(
+        cosineSimilarity(suggestion.embedding, closestRoot.embedding).toFixed(2)
+      ),
+    });
+  });
+
+  return { nodes, links };
 }
 
 export async function getSuggestions(query: string) {
@@ -148,17 +87,9 @@ export async function getSuggestions(query: string) {
     const queryEmbedding = queryResponse.data[0].embedding;
 
     // 最初の親ノードはダミー値で呼び出す
-    const network = await buildNetwork("query", queryEmbedding, [query]);
-    network.nodes.unshift({ id: "query", label: query, name: "query" }); // 中心ノード追加
-    // console.log(network);
-
-    // 重複ノードの処理
-    const refinedNetwork = removeDuplicateNodes(network); // うまくできない
-    console.log(refinedNetwork);
+    const network = generateTree(query, queryEmbedding, suggestions);
 
     return network;
-    // return { nodes: newNodes, links: refinedNetwork.links };
-
   } catch (error) {
     console.error("Error in getSuggestions:", error);
     return { nodes: [], links: [] };
