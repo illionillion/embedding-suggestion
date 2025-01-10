@@ -14,5 +14,6 @@ OPENAI_API_KEY=
 
 ```sh
 pnpm i
+pnpm embedding
 pnpm dev
 ```
