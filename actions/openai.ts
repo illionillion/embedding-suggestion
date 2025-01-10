@@ -55,10 +55,10 @@ export async function getSuggestions(query: string) {
 
           // 閾値を動的に変更
           const threshold =
-            depth === 0 ? 0.8
+            depth === 0 ? 0.7
               : depth === 1
-              ? 0.7
-              : 0.65;
+              ? 0.65
+              : 0.6;
 
           if (similarity > threshold) {
             const nodeId = `${item.name}-${depth}-${childEmbedding.join(",")}`;
