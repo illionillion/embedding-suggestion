@@ -11,6 +11,8 @@ loading: () => <Center w="full" h="full"><Loading /></Center>
 
    });
   const [query, setQuery] = useState("");
+  // queryとは別で今検索してるものを保持したい
+  const [currentQuery, setCurrentQuery] = useState("");
   const cacheRef = useRef(new Map<string, Awaited<ReturnType<typeof getSuggestions>>>());
   const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
   const [isLoading, { on: start, off: end }] = useBoolean();
@@ -24,6 +26,7 @@ loading: () => <Center w="full" h="full"><Loading /></Center>
     console.log(result);
     if (result) {
       cache.set(query, result);
+      setCurrentQuery(query);
       setData(result);
     }
     end();
@@ -44,7 +47,7 @@ loading: () => <Center w="full" h="full"><Loading /></Center>
           検索
         </Button>
       </HStack>
-      <CustomGraph data={data} query={query} />
+      <CustomGraph data={data} query={currentQuery} />
     </Container>
   );
 }
