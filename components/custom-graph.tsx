@@ -102,7 +102,7 @@ const CustomGraph: FC<CustomGraphProps> = ({
                     ctx.shadowOffsetX = 0;
                     ctx.shadowOffsetY = 2;  // 影のY軸方向のオフセット
                     // キーワードノードの描画
-                    const radius = 20;
+                    const radius = Math.max(20, textWidth / 2 + 10); // 円の半径をテキストの横幅に合わせる
                     ctx.beginPath();
                     ctx.arc(node.x || 0, node.y || 0, radius, 0, 2 * Math.PI, false);
                     ctx.fillStyle = "rgba(0, 255, 0, 0.8)"; // 円の色
