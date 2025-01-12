@@ -1,11 +1,10 @@
 "use client";
 
 import { getSuggestions } from "@/actions/suggestion";
+import RobotAnimation from "@/components/robot-animation";
 import { Button, Center, Container, Heading, HStack, Input, Loading, useBoolean, } from "@yamada-ui/react";
 import dynamic from "next/dynamic";
 import { useState, useRef } from "react";
-import { Player } from "@lottiefiles/react-lottie-player"
-import RobotAnimation from "@/public/robot-animation.json"
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -13,25 +12,14 @@ export default function Home() {
   const [currentQuery, setCurrentQuery] = useState("");
   const cacheRef = useRef(new Map<string, Awaited<ReturnType<typeof getSuggestions>>>());
   const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
-  const [loading, { on: start, off: end }] = useBoolean();
+  const [loading, { on: start, off: end }] = useBoolean(false);
   const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), {
     ssr: false,
     loading: () => <Center w="full" h="full">
       {
-        loading ?
-          <Player
-            autoplay
-            loop
-            src={RobotAnimation}
-            style={{
-              height: "250px",
-              width: "250px",
-              pointerEvents: "none",
-            }}
-          />
-          :
-          <Loading />
-      }
+        loading ? <RobotAnimation /> :
+        <Loading />
+        }
     </Center>
   });
 
