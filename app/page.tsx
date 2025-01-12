@@ -4,18 +4,36 @@ import { getSuggestions } from "@/actions/suggestion";
 import { Button, Center, Container, Heading, HStack, Input, Loading, useBoolean, } from "@yamada-ui/react";
 import dynamic from "next/dynamic";
 import { useState, useRef } from "react";
+import { Player } from "@lottiefiles/react-lottie-player"
+import RobotAnimation from "@/public/robot-animation.json"
 
 export default function Home() {
-  const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), { ssr: false,
-loading: () => <Center w="full" h="full"><Loading /></Center>
-
-   });
   const [query, setQuery] = useState("");
   // queryとは別で今検索してるものを保持したい
   const [currentQuery, setCurrentQuery] = useState("");
   const cacheRef = useRef(new Map<string, Awaited<ReturnType<typeof getSuggestions>>>());
   const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
-  const [isLoading, { on: start, off: end }] = useBoolean();
+  const [loading, { on: start, off: end }] = useBoolean();
+  const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), {
+    ssr: false,
+    loading: () => <Center w="full" h="full">
+      {
+        loading ?
+          <Player
+            autoplay
+            loop
+            src={RobotAnimation}
+            style={{
+              height: "250px",
+              width: "250px",
+              pointerEvents: "none",
+            }}
+          />
+          :
+          <Loading />
+      }
+    </Center>
+  });
 
   const handleSearch = async () => {
     const cache = cacheRef.current;
@@ -41,9 +59,9 @@ loading: () => <Center w="full" h="full"><Loading /></Center>
           placeholder="キーワード入力"
           value={query}
           onChange={(e) => setQuery(e.currentTarget.value)}
-          disabled={isLoading}
+          disabled={loading}
         />
-        <Button onClick={handleSearch} loading={isLoading}>
+        <Button onClick={handleSearch} loading={loading}>
           検索
         </Button>
       </HStack>

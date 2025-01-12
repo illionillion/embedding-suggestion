@@ -62,7 +62,6 @@ const CustomGraph: FC<CustomGraphProps> = ({
         }
     }, [data, query]);
 
-
     return (
         <ForceGraph2D
             ref={graphRef as any}
@@ -131,13 +130,13 @@ const CustomGraph: FC<CustomGraphProps> = ({
                     // サークルノードの描画 (背景を白に設定)
                     ctx.fillStyle = "white";  // 背景を白に設定
                     ctx.fillRect((node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, totalCardHeight);
-                    
+
                     // 影の設定をクリア
                     ctx.shadowColor = "transparent";  // 影をリセット
                     ctx.shadowBlur = 0;
                     ctx.shadowOffsetX = 0;
                     ctx.shadowOffsetY = 0;
-                    
+
                     // 画像をカード内に収める（画像の上部をカードの上部に合わせる）
                     ctx.drawImage(image, (node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, cardHeight);
 
