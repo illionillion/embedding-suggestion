@@ -1,10 +1,18 @@
 "use client";
 
 import { getSuggestions } from "@/actions/suggestion";
-import RobotAnimation from "@/components/robot-animation";
 import { Button, Center, Container, Heading, HStack, Input, Loading, useBoolean, } from "@yamada-ui/react";
 import dynamic from "next/dynamic";
 import { useState, useRef } from "react";
+
+const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), {
+  ssr: false,
+  loading: () => <Center w="full" h="full">
+    {
+      <Loading />
+    }
+  </Center>
+});
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -13,15 +21,6 @@ export default function Home() {
   const cacheRef = useRef(new Map<string, Awaited<ReturnType<typeof getSuggestions>>>());
   const [data, setData] = useState<Awaited<ReturnType<typeof getSuggestions>>>({ nodes: [], links: [] });
   const [loading, { on: start, off: end }] = useBoolean(false);
-  const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), {
-    ssr: false,
-    loading: () => <Center w="full" h="full">
-      {
-        loading ? <RobotAnimation /> :
-        <Loading />
-        }
-    </Center>
-  });
 
   const handleSearch = async () => {
     const cache = cacheRef.current;
@@ -53,7 +52,7 @@ export default function Home() {
           検索
         </Button>
       </HStack>
-      <CustomGraph data={data} query={currentQuery} />
+      <CustomGraph data={data} query={currentQuery} loading={loading} />
     </Container>
   );
 }

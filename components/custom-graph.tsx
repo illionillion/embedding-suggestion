@@ -1,7 +1,8 @@
 "use client";
 
+import RobotAnimation from "@/components/robot-animation";
 import { getSuggestions } from "@/actions/suggestion";
-import { FC } from "@yamada-ui/react";
+import { Center, FC } from "@yamada-ui/react";
 import { useEffect, useRef } from "react";
 import { ForceGraph2D } from "react-force-graph";
 
@@ -30,11 +31,13 @@ interface Link {
 interface CustomGraphProps {
     query: string
     data: Awaited<ReturnType<typeof getSuggestions>>
+    loading: boolean
 }
 
 const CustomGraph: FC<CustomGraphProps> = ({
     query,
-    data
+    data,
+    loading,
 }) => {
     const graphRef = useRef<ForceGraphMethods | null>(null); // 型を追加
     const imageRef = useRef<HTMLImageElement | null>(null);
@@ -63,113 +66,112 @@ const CustomGraph: FC<CustomGraphProps> = ({
     }, [data, query]);
 
     return (
-        <ForceGraph2D
-            ref={graphRef as any}
-            graphData={data}
-            nodeLabel={(node: Node) => node.label || ""}
-            nodeAutoColorBy="id"
-            linkWidth={(link: Link) => link.value * 10}
-            linkDirectionalArrowLength={6}
-            linkDirectionalArrowRelPos={1}
-            linkDirectionalArrowColor={(link: Link) => link.value > 0.7 ? 'red' : 'blue'}
-            nodeCanvasObject={(node, ctx, globalScale) => {
-                const label = node.label || "";
-                const fontSize = 12 / globalScale;
-                ctx.font = `${fontSize}px Sans-Serif`;
-
-                // ラベルの文字幅を計算
-                const textWidth = ctx.measureText(label).width;
-                const textHeight = ctx.measureText(label).actualBoundingBoxAscent + ctx.measureText(label).actualBoundingBoxDescent;
-                const cardWidth = Math.max(60, textWidth + 20); // 最小幅を60pxに設定、余白20px
-
-                const image = imageRef.current;
-
-                // カードの高さを画像のアスペクト比を保ちながら調整
-                let cardHeight = 0;
-
-                if (image) {
-                    const imageAspectRatio = image.width / image.height; // 画像のアスペクト比
-                    cardHeight = cardWidth / imageAspectRatio;  // 横幅に合わせた高さに設定
-                }
-
-                // ラベルと説明をカードに含める
-                const totalCardHeight = cardHeight + textHeight + fontSize * 2; // 画像 + ラベル + 説明部分
-
-                if (node.label === query) {
-                    ctx.shadowColor = "rgba(0, 0, 0, 0.3)";  // 影の色
-                    ctx.shadowBlur = 10;  // 影のぼかし
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 2;  // 影のY軸方向のオフセット
-                    // キーワードノードの描画
-                    const radius = Math.max(20, textWidth / 2 + 10); // 円の半径をテキストの横幅に合わせる
-                    ctx.beginPath();
-                    ctx.arc(node.x || 0, node.y || 0, radius, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = "rgba(0, 255, 0, 0.8)"; // 円の色
-                    ctx.fill();
-                    ctx.fillStyle = "black";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.fillText(label, node.x || 0, node.y || 0);
-
-                    // バックグラウンドの寸法を円に合わせて設定
-                    node.__bckgDimensions = [radius * 2, radius * 2];  // 円の直径
-
-                    // 影の設定をリセット
-                    ctx.shadowColor = "transparent";
-                    ctx.shadowBlur = 0;
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 0;
-                } else if (image) {
-                    // 影をカード部分にだけ適用
-                    ctx.shadowColor = "rgba(0, 0, 0, 0.3)";  // 影の色
-                    ctx.shadowBlur = 10;  // 影のぼかし
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 5;  // 影のY軸方向のオフセット
-                    // 左にも右にも影を当てたい
-
-                    // サークルノードの描画 (背景を白に設定)
-                    ctx.fillStyle = "white";  // 背景を白に設定
-                    ctx.fillRect((node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, totalCardHeight);
-
-                    // 影の設定をクリア
-                    ctx.shadowColor = "transparent";  // 影をリセット
-                    ctx.shadowBlur = 0;
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 0;
-
-                    // 画像をカード内に収める（画像の上部をカードの上部に合わせる）
-                    ctx.drawImage(image, (node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, cardHeight);
-
-                    // サークル名（ラベル）を画像の下に描画
-                    ctx.fillStyle = "black";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.fillText(label, node.x || 0, (node.y || 0) + cardHeight / 2);
-
-                    // バックグラウンドの寸法を再設定
-                    node.__bckgDimensions = [cardWidth, totalCardHeight];  // 高さをラベルと説明まで含めて設定
-
-                }
-            }}
-            nodePointerAreaPaint={(node: Node, color, ctx) => {
-                const bckgDimensions = node.__bckgDimensions;
-                if (bckgDimensions) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(
-                        (node.x || 0) - bckgDimensions[0] / 2,
-                        (node.y || 0) - bckgDimensions[1] / 2,
-                        ...bckgDimensions
-                    );
-                }
-            }}
-            onNodeClick={(node, e) => {
-                if (node.id === "query") {
-                    return;
-                }
-                // ノードをクリックした際の遷移処理
-                console.log(node, e);
-            }}
-        />
+        <Center w="full" h="full">
+            {loading && (
+                <Center
+                    position="absolute"
+                    zIndex="beerus"
+                    rounded="full"
+                    boxSize="md"
+                    bg="blackAlpha.100"
+                >
+                    <RobotAnimation />
+                </Center>
+            )}
+            <ForceGraph2D
+                ref={graphRef as any}
+                graphData={data}
+                nodeLabel={(node: Node) => node.label || ""}
+                nodeAutoColorBy="id"
+                linkWidth={(link: Link) => link.value * 10}
+                linkDirectionalArrowLength={6}
+                linkDirectionalArrowRelPos={1}
+                linkDirectionalArrowColor={(link: Link) => link.value > 0.7 ? 'red' : 'blue'}
+                nodeCanvasObject={(node, ctx, globalScale) => {
+                    const label = node.label || "";
+                    const fontSize = 12 / globalScale;
+                    ctx.font = `${fontSize}px Sans-Serif`;
+                    // ラベルの文字幅を計算
+                    const textWidth = ctx.measureText(label).width;
+                    const textHeight = ctx.measureText(label).actualBoundingBoxAscent + ctx.measureText(label).actualBoundingBoxDescent;
+                    const cardWidth = Math.max(60, textWidth + 20); // 最小幅を60pxに設定、余白20px
+                    const image = imageRef.current;
+                    // カードの高さを画像のアスペクト比を保ちながら調整
+                    let cardHeight = 0;
+                    if (image) {
+                        const imageAspectRatio = image.width / image.height; // 画像のアスペクト比
+                        cardHeight = cardWidth / imageAspectRatio;  // 横幅に合わせた高さに設定
+                    }
+                    // ラベルと説明をカードに含める
+                    const totalCardHeight = cardHeight + textHeight + fontSize * 2; // 画像 + ラベル + 説明部分
+                    if (node.label === query) {
+                        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";  // 影の色
+                        ctx.shadowBlur = 10;  // 影のぼかし
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 2;  // 影のY軸方向のオフセット
+                        // キーワードノードの描画
+                        const radius = Math.max(20, textWidth / 2 + 10); // 円の半径をテキストの横幅に合わせる
+                        ctx.beginPath();
+                        ctx.arc(node.x || 0, node.y || 0, radius, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = "rgba(0, 255, 0, 0.8)"; // 円の色
+                        ctx.fill();
+                        ctx.fillStyle = "black";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(label, node.x || 0, node.y || 0);
+                        // バックグラウンドの寸法を円に合わせて設定
+                        node.__bckgDimensions = [radius * 2, radius * 2];  // 円の直径
+                        // 影の設定をリセット
+                        ctx.shadowColor = "transparent";
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 0;
+                    } else if (image) {
+                        // 影をカード部分にだけ適用
+                        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";  // 影の色
+                        ctx.shadowBlur = 10;  // 影のぼかし
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 5;  // 影のY軸方向のオフセット
+                        // 左にも右にも影を当てたい
+                        // サークルノードの描画 (背景を白に設定)
+                        ctx.fillStyle = "white";  // 背景を白に設定
+                        ctx.fillRect((node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, totalCardHeight);
+                        // 影の設定をクリア
+                        ctx.shadowColor = "transparent";  // 影をリセット
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 0;
+                        // 画像をカード内に収める（画像の上部をカードの上部に合わせる）
+                        ctx.drawImage(image, (node.x || 0) - cardWidth / 2, (node.y || 0) - totalCardHeight / 2, cardWidth, cardHeight);
+                        // サークル名（ラベル）を画像の下に描画
+                        ctx.fillStyle = "black";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(label, node.x || 0, (node.y || 0) + cardHeight / 2);
+                        // バックグラウンドの寸法を再設定
+                        node.__bckgDimensions = [cardWidth, totalCardHeight];  // 高さをラベルと説明まで含めて設定
+                    }
+                }}
+                nodePointerAreaPaint={(node: Node, color, ctx) => {
+                    const bckgDimensions = node.__bckgDimensions;
+                    if (bckgDimensions) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(
+                            (node.x || 0) - bckgDimensions[0] / 2,
+                            (node.y || 0) - bckgDimensions[1] / 2,
+                            ...bckgDimensions
+                        );
+                    }
+                }}
+                onNodeClick={(node, e) => {
+                    if (node.id === "query") {
+                        return;
+                    }
+                    // ノードをクリックした際の遷移処理
+                    console.log(node, e);
+                }}
+            />
+        </Center>
     );
 }
 
