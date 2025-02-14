@@ -8,9 +8,7 @@ import { useState, useRef } from "react";
 const CustomGraph = dynamic(() => import("@/components/custom-graph").then(mod => mod.default), {
   ssr: false,
   loading: () => <Center w="full" h="full">
-    {
-      <Loading />
-    }
+    <Loading />
   </Center>
 });
 
@@ -40,7 +38,10 @@ export default function Home() {
   return (
     <Container w="full" h="100dvh" m="auto">
       <Heading>検索</Heading>
-      <HStack>
+      <HStack as="form" onSubmit={e => {
+        e.preventDefault()
+        handleSearch()
+      }}>
         <Input
           type="text"
           placeholder="キーワード入力"
@@ -48,7 +49,7 @@ export default function Home() {
           onChange={(e) => setQuery(e.currentTarget.value)}
           disabled={loading}
         />
-        <Button onClick={handleSearch} loading={loading}>
+        <Button type="submit" onClick={handleSearch} loading={loading}>
           検索
         </Button>
       </HStack>
